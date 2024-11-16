@@ -1,3 +1,13 @@
+--Entity Insert
+INSERT INTO Entity () 
+VALUES 
+    (), (), (), (), (), (), (), (), (), (),
+    (), (), (), (), (), (), (), (), (), (),
+    (), (), (), (), (), (), (), (), (), (),
+    (), (), (), (), (), (), (), (), (), (),
+    (), (), (), (), (), (), (), (), (), ();
+
+--Work Insert
 INSERT INTO WORK (WorkName, WorkStartDate, WorkEndDate, EntityId_FK, WorkTypeId_FK) VALUES ('3M', '2024-09-20', '2026-01-01', 1, 1);
 INSERT INTO WORK (WorkName, WorkStartDate, WorkEndDate, EntityId_FK, WorkTypeId_FK) VALUES ('Carlsons Coders', '2020-01-12', '2027-01-01', 2, 1);
 INSERT INTO WORK (WorkName, WorkStartDate, WorkEndDate, EntityId_FK, WorkTypeId_FK) VALUES ('Cengage', '2024-09-20', '2026-01-01', 3, 2);
