@@ -92,3 +92,144 @@ CREATE TABLE Company (
 );
 
 
+### SQL REPORTS!!!
+#Inactive Employee-Client Contacts
+SELECT 
+    ecc.EmployeeClientId AS Employee_Client_ID,
+    ecc.EmployeeId_FK AS Employee_ID,
+    ecc.ClientId_FK AS Client_ID,
+    c.LegalName AS Client_Legal_Name,
+    ecc.ActiveDate AS Start_Date,
+    ecc.ExpDate AS End_Date
+FROM 
+    EmployeeClientContact ecc
+JOIN 
+    Client c ON ecc.ClientId_FK = c.ClientId
+JOIN 
+    Employee e ON ecc.EmployeeId_FK = e.EmployeeId
+WHERE 
+    CURDATE() BETWEEN ecc.ActiveDate AND ecc.ExpDate
+ORDER BY 
+    ecc.ExpDate ASC;
+
+
+# Clients by WorkType
+SELECT 
+    c.ClientId AS Client_ID,
+    c.LegalName AS Legal_Name,
+    c.FriendlyName AS Friendly_Name,
+    r.RoleId AS Role_ID,
+    wt.WorkTypeName AS Work_Type
+FROM 
+    Client c
+JOIN 
+    Role r ON c.RoleId_FK = r.RoleId
+JOIN 
+    WorkType wt ON r.RoleTypeId_FK = wt.WorkTypeId
+ORDER BY 
+    c.LegalName;
+    
+#Payments by Payment Type
+
+SELECT 
+    pt.PaymentType AS Payment_Type,
+    p.PaymentId AS Payment_ID,
+    p.PaymentName AS Payment_Name,
+    p.PaymentDate AS Payment_Date
+FROM 
+    Payment p
+JOIN 
+    PaymentType pt ON p.PaymentTypeId_FK = pt.PaymentTypeID
+ORDER BY 
+    pt.PaymentType, p.PaymentDate DESC;
+
+#Payments Linked to Employees
+
+SELECT 
+    ep.EmployeePaymentId AS Employee_Payment_ID,
+    p.PaymentName AS Payment_Name,
+    p.PaymentDate AS Payment_Date
+FROM 
+    EmployeePayment ep
+JOIN 
+    Payment p ON ep.PaymentId_FK = p.PaymentId
+JOIN 
+    Employee e ON ep.PaymentId_FK = p.PaymentId
+ORDER BY 
+    p.PaymentDate DESC;
+
+# Stored Procedures
+# SP-1 Get Client Payment Summary
+
+DELIMITER $$
+
+CREATE PROCEDURE GetClientPaymentSummary(IN startDate DATE, IN endDate DATE)
+BEGIN
+    SELECT 
+        c.ClientId,
+        c.LegalName AS ClientLegalName,
+        c.FriendlyName AS ClientFriendlyName,
+        pt.PaymentType AS PaymentMethod,
+        COUNT(p.PaymentId) AS TotalPayments,
+        SUM(CAST(p.PaymentName AS DECIMAL(10, 2))) AS TotalPaymentAmount
+    FROM Client c
+    JOIN EmployeeClientContact ecc ON c.ClientId = ecc.ClientId_FK
+    JOIN EmployeePayment ep ON ecc.EmployeeClientId = ep.TimeSheetId_FK
+    JOIN Payment p ON ep.PaymentId_FK = p.PaymentId
+    JOIN PaymentType pt ON p.PaymentTypeId_FK = pt.PaymentTypeID
+    WHERE p.PaymentDate BETWEEN startDate AND endDate
+    GROUP BY c.ClientId, pt.PaymentType
+    ORDER BY TotalPaymentAmount DESC;
+END $$
+
+DELIMITER ;
+
+CALL GetClientPaymentSummary('2024-01-01', '2024-12-31');
+
+# SP-2 Get Active Employee Assignments by Client
+
+DELIMITER $$
+
+CREATE PROCEDURE GetActiveEmployeeAssignmentsByClient()
+BEGIN
+    SELECT 
+        ecc.EmployeeClientId,
+        ecc.EmployeeId_FK AS EmployeeId,
+        c.ClientId,
+        c.LegalName AS ClientLegalName,
+        r.RoleTypeId_FK AS RoleType,
+        ecc.ActiveDate,
+        ecc.ExpDate
+    FROM EmployeeClientContact ecc
+    JOIN Client c ON ecc.ClientId_FK = c.ClientId
+    JOIN Role r ON c.RoleId_FK = r.RoleId
+    WHERE ecc.ExpDate > CURDATE() OR ecc.ExpDate IS NULL
+    ORDER BY c.ClientId, ecc.ActiveDate;
+END $$
+
+DELIMITER ;
+
+CALL GetActiveEmployeeAssignmentsByClient();
+
+#SP-3 Calculate Payment Summary for Employees
+
+DELIMITER $$
+
+CREATE PROCEDURE CalculateEmployeePaymentSummary()
+BEGIN
+    SELECT 
+        ecc.EmployeeId_FK AS EmployeeId,
+        pt.PaymentType AS PaymentMethod,
+        COUNT(p.PaymentId) AS TotalPayments,
+        SUM(CAST(p.PaymentName AS DECIMAL(10, 2))) AS TotalPaymentAmount
+    FROM EmployeeClientContact ecc
+    JOIN EmployeePayment ep ON ecc.EmployeeClientId = ep.TimeSheetId_FK
+    JOIN Payment p ON ep.PaymentId_FK = p.PaymentId
+    JOIN PaymentType pt ON p.PaymentTypeId_FK = pt.PaymentTypeID
+    GROUP BY ecc.EmployeeId_FK, pt.PaymentType
+    ORDER BY TotalPaymentAmount DESC;
+END $$
+
+DELIMITER ;
+
+CALL CalculateEmployeePaymentSummary();
