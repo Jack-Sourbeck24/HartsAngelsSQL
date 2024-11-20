@@ -93,24 +93,24 @@ CREATE TABLE Company (
 
 
 ### SQL REPORTS!!!
-#Inactive Employee-Client Contacts
+#Role Distribution by Company
 SELECT 
-    ecc.EmployeeClientId AS Employee_Client_ID,
-    ecc.EmployeeId_FK AS Employee_ID,
-    ecc.ClientId_FK AS Client_ID,
-    c.LegalName AS Client_Legal_Name,
-    ecc.ActiveDate AS Start_Date,
-    ecc.ExpDate AS End_Date
+    co.CompanyId AS Company_ID,
+    COUNT(r.RoleId) AS Total_Roles,
+    rt.RoleTypeId AS Role_Type_ID,
+    rt.RoleTypeId AS Role_Type_Description
 FROM 
-    EmployeeClientContact ecc
-JOIN 
-    Client c ON ecc.ClientId_FK = c.ClientId
-JOIN 
-    Employee e ON ecc.EmployeeId_FK = e.EmployeeId
-WHERE 
-    CURDATE() BETWEEN ecc.ActiveDate AND ecc.ExpDate
+    Company co
+LEFT JOIN 
+    Client cl ON co.CompanyId = cl.CompanyId_FK
+LEFT JOIN 
+    Role r ON cl.RoleId_FK = r.RoleId
+LEFT JOIN 
+    RoleType rt ON r.RoleTypeId_FK = rt.RoleTypeId
+GROUP BY 
+    co.CompanyId, rt.RoleTypeId
 ORDER BY 
-    ecc.ExpDate ASC;
+    co.CompanyId, Total_Roles DESC;
 
 
 # Clients by WorkType
